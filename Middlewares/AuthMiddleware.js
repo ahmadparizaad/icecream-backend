@@ -1,7 +1,6 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 // const { JWT_SECRET } = require("../../GlobalConstants");
-const { JWT_SECRET } = require("../GLOBAL_CONSTANTS");
 
 const validateToken = async (req, res, next) => {
   try {
@@ -10,7 +9,7 @@ const validateToken = async (req, res, next) => {
       return res.status(400).send({ status: false, message: `Unauthorized` });
     }
     let splitToken = token.split(" ");
-    let decodeToken = jwt.verify(splitToken[1], JWT_SECRET);
+    let decodeToken = jwt.verify(splitToken[1], process.env.JWT_SECRET);
     if (!decodeToken) {
       return res.status(401).send({ status: false, message: `Invalid Token` });
     } else {
@@ -27,7 +26,7 @@ const generateJWt = (data) => {
     {
       ...data,
     },
-    JWT_SECRET,
+    process.env.JWT_SECRET,
     { expiresIn: "90d" }
   );
   return token;
@@ -36,7 +35,7 @@ const generateJWt = (data) => {
 const verifyVendorRole = async (req, res, next) => {
   console.log("verify");
   try {
-    jwt.verify(SplitBearer(req), JWT_SECRET, (err, decode) => {
+    jwt.verify(SplitBearer(req), process.env.JWT_SECRET, (err, decode) => {
       if (err) {
         res.status(401).send({
           success: false,
