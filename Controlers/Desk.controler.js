@@ -2,10 +2,12 @@ const validator = require("../Middlewares/Validator");
 const { SendSuccess, SendError, SendFail } = require("../Middlewares/Response");
 const DeskSchema = require("../Schema/DeskID.Schema");
 const UserSchema = require("../Schema/User");
+const DB = require("../Connection");
 
 const create = async (req, res, next) => {
   const { number, user } = req.body;
   try {
+    await DB.connectWithRetry();
     let fields = { number, user };
     if (!validator.validateField(fields, res)) return null;
     let checkEmployee = await UserSchema.findById(user).populate("deskId");
@@ -14,7 +16,7 @@ const create = async (req, res, next) => {
       return SendSuccess(
         res,
         "User already assigned in Desk ID " + checkEmployee?.number,
-        checkEmployee``
+        checkEmployee
       );
     }
     // if(checkEmployee)
@@ -43,6 +45,7 @@ const create = async (req, res, next) => {
 const addMember = async (req, res, next) => {
   const { deskNumber, user, deskId } = req.body;
   try {
+    await DB.connectWithRetry();
     let fields = { deskNumber, user, deskId };
 
     if (!validator.validateField(fields, res)) return null;
@@ -79,6 +82,7 @@ const addMember = async (req, res, next) => {
 const removeEmployee = async (req, res, next) => {
   const { deskNumber, user, deskId } = req.body;
   try {
+    await DB.connectWithRetry();
     let fields = { deskNumber, user, deskId };
 
     if (!validator.validateField(fields, res)) return null;
@@ -107,10 +111,20 @@ const removeEmployee = async (req, res, next) => {
 
 const read = async (req, res, next) => {
   try {
+    // Ensure DB connection on serverless cold start; safely returns if already connected
+    await DB.connectWithRetry();
+
+    const limit = parseInt(req.query.limit, 10) || 100;
+    const page = parseInt(req.query.page, 10) || 1;
+    const skip = (page - 1) * limit;
+
     const data = await DeskSchema.find(req.query)
       .populate("employee")
+      .populate("members")
       .sort({ number: 1 })
-      .populate("members");
+      .lean()
+      .skip(skip)
+      .limit(limit);
 
     SendSuccess(res, "Desk Fetched", data);
   } catch (e) {
@@ -120,6 +134,7 @@ const read = async (req, res, next) => {
 };
 const Delete = async (req, res, next) => {
   try {
+    await DB.connectWithRetry();
     const { id } = req.params;
     const data = await DeskSchema.findByIdAndDelete(id);
     if (!data) return SendFail(res, "Id not found");
@@ -131,6 +146,7 @@ const Delete = async (req, res, next) => {
 };
 const update = async (req, res, next) => {
   try {
+    await DB.connectWithRetry();
     const { id } = req.params;
     const data = await DeskSchema.findByIdAndUpdate(id, req.body, {
       new: true,
