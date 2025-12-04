@@ -1,9 +1,8 @@
 const mongoose = require("mongoose");
-const GLOBAL = require("./GLOBAL_CONSTANTS");
 
 const connectWithRetry = async () => {
   try {
-    if (!GLOBAL.MONGO_URI) {
+    if (!process.env.MONGO_URI) {
       console.warn("MONGO_URI is not set. Skipping DB connection.");
       return;
     }
@@ -11,7 +10,7 @@ const connectWithRetry = async () => {
       // already connected
       return mongoose;
     }
-    await mongoose.connect(GLOBAL.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true });
+    await mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true });
     console.log("connected to database");
     return mongoose;
   } catch (err) {
